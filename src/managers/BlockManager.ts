@@ -5,11 +5,11 @@ export class BlockManager extends EventEmitter {
   private recentBlocks: BlockData[] = [];
   private blocksByHash: Map<string, BlockData> = new Map();
   private blocksByNumber: Map<string, BlockData> = new Map();
-  private maxBlocks: number;
+  private maxCacheSize: number;
 
-  constructor(maxBlocks: number = 50) {
+  constructor(maxCacheSize: number = 500) {
     super();
-    this.maxBlocks = maxBlocks;
+    this.maxCacheSize = maxCacheSize;
   }
 
   getRecentBlocks(): BlockData[] {
@@ -38,8 +38,8 @@ export class BlockManager extends EventEmitter {
       // Add to the front of the array
       this.recentBlocks.unshift(block);
 
-      // If we've exceeded max blocks, remove the oldest
-      if (this.recentBlocks.length > this.maxBlocks) {
+      // If we've exceeded max cache size, remove the oldest
+      if (this.recentBlocks.length > this.maxCacheSize) {
         const removedBlock = this.recentBlocks.pop();
         if (removedBlock) {
           // Check if the block is still referenced by a different number

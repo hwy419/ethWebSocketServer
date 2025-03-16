@@ -16,6 +16,7 @@ class Application {
     const ethereumNodeUrl = process.env.ETHEREUM_NODE_URL || '';
     const wsPort = parseInt(process.env.WS_PORT || '3000', 10);
     const numBlocksToCache = parseInt(process.env.NUM_BLOCKS_TO_CACHE || '50', 10);
+    const maxNumBlocksToCache = parseInt(process.env.MAX_NUM_BLOCKS_TO_CACHE || '500', 10);
 
     // Validate configuration
     if (!ethereumNodeUrl) {
@@ -23,7 +24,7 @@ class Application {
     }
 
     // Initialize components
-    this.blockManager = new BlockManager(numBlocksToCache);
+    this.blockManager = new BlockManager(maxNumBlocksToCache);
     this.ethereumService = new EthereumService(ethereumNodeUrl);
     this.wsServer = new WebSocketServer(wsPort, this.blockManager);
 
