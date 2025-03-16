@@ -39,6 +39,16 @@ class Application {
       this.blockManager.addBlock(block);
     });
 
+    // Set up periodic cache size logging
+    const logInterval = parseInt(process.env.CACHE_LOG_INTERVAL || '300000', 10); // Default: 5 minutes
+    if (logInterval > 0) {
+      setInterval(() => {
+        const cacheSize = this.blockManager.getCacheSize();
+        const maxSize = this.blockManager.getMaxCacheSize();
+        console.log(`[CACHE STATS] Current blocks in cache: ${cacheSize}/${maxSize} (${((cacheSize / maxSize) * 100).toFixed(2)}% of capacity)`);
+      }, logInterval);
+    }
+
     // Handle process termination signals
     process.on('SIGINT', this.shutdown.bind(this));
     process.on('SIGTERM', this.shutdown.bind(this));

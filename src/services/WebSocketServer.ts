@@ -177,6 +177,8 @@ export class WebSocketServer extends EventEmitter {
   private sendInitialBlocks(client: Client): void {
     const blocks = this.blockManager.getRecentBlocks();
     
+    console.log(`WebSocketServer: Sending ${blocks.length} initial blocks to client ${client.id}. Total blocks in cache: ${this.blockManager.getCacheSize()}`);
+    
     this.sendToClient(client, {
       type: MessageType.INITIAL_BLOCKS,
       data: blocks,
