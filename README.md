@@ -1,224 +1,110 @@
-# Ethereum Block Tracker WebSocket Server
+# Ethereum Block Tracker
 
-A robust server that tracks Ethereum blocks and shares updates with connected clients via WebSockets.
+A robust, real-time Ethereum blockchain monitoring service that tracks new blocks and delivers instant updates to connected clients via WebSockets. This application establishes a persistent connection to the Ethereum network through QuickNode, subscribes to new block events, and maintains an in-memory cache of the 50 most recent blocks with complete transaction data.
 
-## Features
+## Overview
 
-- 🔄 Real-time tracking of new Ethereum blocks
-- 📡 WebSocket API for clients to subscribe to block updates
-- 🏪 In-memory caching of recent blocks
-- 🔎 Support for filtering block data based on client preferences
-- 📊 Rich block metrics for transaction analysis
-- ⚡ Chain reorganization detection and notification
-- 🛡️ Error handling and automatic reconnection
+The Ethereum Block Tracker serves as a reliable middleware between your applications and the Ethereum blockchain, eliminating the complexity of directly managing blockchain connections while providing low-latency access to the latest network activity.
 
-## Prerequisites
+![Ethereum Block Tracker Architecture](https://placeholder-for-architecture-diagram.com)
 
-- Node.js v16+
-- npm or yarn
-- Access to an Ethereum API endpoint (e.g., Quicknode, Infura, Alchemy)
+## Key Features
 
-## Installation
+- **Real-time Block Monitoring**: Receive instant notifications when new blocks are mined on the Ethereum blockchain
+- **Complete Transaction Data**: Access comprehensive block data including transactions, receipts, and post-Cancun fields (blob gas, withdrawals)
+- **Efficient Memory Management**: Maintains a thread-safe, in-memory cache of the 50 most recent blocks
+- **Resilient Connection Handling**: Automatically handles node disconnections with intelligent reconnection strategies
+- **Chain Reorganization Detection**: Properly identifies and propagates blockchain reorganizations to clients
+- **WebSocket Subscription System**: Allows clients to subscribe to specific blockchain events and data
+- **Customizable Data Filters**: Clients can specify exactly which block data they need, reducing bandwidth
+- **Historical Block Backfilling**: Automatically loads recent historical blocks on startup
+- **Optimized Performance**: Uses efficient data structures for O(1) lookups by block hash and number
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/ethWebSocketServer.git
-   cd ethWebSocketServer
-   ```
+## Technology Stack
 
-2. Install dependencies:
-   ```
-   npm install
-   ```
+- **Node.js**: Core runtime environment
+- **web3.js**: Ethereum JavaScript API for blockchain interaction
+- **WebSockets**: For real-time, bidirectional communication with clients
+- **QuickNode**: Enterprise-grade Ethereum node provider for reliable blockchain access
 
-3. Create a `.env` file in the root directory with your configuration:
-   ```
-   # Ethereum Node Connection
-   ETHEREUM_NODE_URL=your_ethereum_endpoint_url
-   
-   # WebSocket Server Configuration
-   WS_PORT=3000
-   
-   # Application Configuration
-   NUM_BLOCKS_TO_CACHE=50
-   ```
+## Use Cases
 
-## Usage
+- **DApp Developers**: Monitor transaction confirmations and blockchain state in real-time
+- **DEX and Trading Applications**: Get immediate updates on blockchain changes for time-sensitive operations
+- **NFT Platforms**: Track minting events and ownership transfers as they occur
+- **Data Analytics Services**: Collect real-time on-chain data for analysis and visualization
+- **Educational Tools**: Demonstrate blockchain operations with live data
+- **Blockchain Explorers**: Power user-facing block exploration tools
 
-### Development
+## Data Capabilities
 
-Start the server in development mode with hot reloading:
+The service provides rich block data including:
 
-```
-npm run dev
-```
+- Block headers (number, hash, parentHash, timestamp)
+- Gas information (gasLimit, gasUsed, baseFeePerGas)
+- Post-Cancun features (blobGasUsed, excessBlobGas)
+- Merkle roots (transactionsRoot, receiptsRoot, stateRoot)
+- Validator withdrawals with recipient details
+- Complete transaction objects with:
+  - Transaction metadata (hash, nonce, type)
+  - Sender and recipient addresses
+  - Value transfers and contract interactions
+  - Gas parameters including EIP-1559 fields
+  - Signature components
 
-### Production
+## Getting Started
 
-Build and start the server in production mode:
+### Prerequisites
 
-```
-npm run build
+- Node.js 16.x or higher
+- A QuickNode Ethereum endpoint API key
+- WebSocket client library for your frontend/application
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/ethereum-block-tracker.git
+
+# Install dependencies
+cd ethereum-block-tracker
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your QuickNode API key and other settings
+
+# Start the server
 npm start
 ```
 
-### Running the Example Client
+## Client Integration
 
-An example client implementation is included to test connectivity:
+Connect to the WebSocket server and subscribe to block updates:
 
+```javascript
+const socket = new WebSocket('ws://your-server-address:port');
+
+socket.onopen = () => {
+  // Subscribe to all blocks with transactions
+  socket.send(JSON.stringify({
+    type: 'subscribe',
+    topic: 'all_blocks',
+    options: {
+      includeTransactions: true
+    }
+  }));
+};
+
+socket.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  
+  if (message.type === 'NEW_BLOCK') {
+    console.log(`New block received: ${message.data.number}`);
+    // Process block data
+  }
+};
 ```
-npm run client
-```
-
-### Block Metrics Example
-
-To explore the block metrics functionality:
-
-```
-cd examples
-npx ts-node blockMetrics.ts
-```
-
-## WebSocket API
-
-Clients can connect to the WebSocket server at `ws://localhost:3000` (or whatever port you configure).
-
-### Messages
-
-#### Client to Server
-
-1. **Subscribe to all blocks**
-   ```json
-   {
-     "type": "SUBSCRIBE",
-     "data": {
-       "topic": "all_blocks",
-       "options": {
-         "includeTransactions": true,
-         "filterFields": ["hash", "number", "timestamp", "metrics"]
-       }
-     }
-   }
-   ```
-
-2. **Unsubscribe from all blocks**
-   ```json
-   {
-     "type": "UNSUBSCRIBE",
-     "data": {
-       "topic": "all_blocks"
-     }
-   }
-   ```
-
-#### Server to Client
-
-1. **Initial Blocks**
-   ```json
-   {
-     "type": "INITIAL_BLOCKS",
-     "data": [/* Array of block objects */],
-     "timestamp": 1681234567890
-   }
-   ```
-
-2. **New Block**
-   ```json
-   {
-     "type": "NEW_BLOCK",
-     "data": {
-       "hash": "0x...",
-       "number": "1234567",
-       "timestamp": "1681234567",
-       "metrics": {
-         "averageTxValue": "125000000000000000",
-         "highestTxValue": "1000000000000000000",
-         "lowestTxValue": "100000000000000",
-         "transactionCounts": {
-           "legacy": 5,
-           "eip1559": 42,
-           "blob": 3
-         },
-         "gasSums": {
-           "legacy": "105000",
-           "eip1559": "2100000",
-           "blob": "600000",
-           "total": "2805000"
-         },
-         "highestGasPrice": "25000000000",
-         "lowestGasPrice": "12000000000",
-         "averageGasPrice": "18500000000"
-       },
-       // Other block fields...
-     },
-     "timestamp": 1681234567890
-   }
-   ```
-
-3. **Error**
-   ```json
-   {
-     "type": "ERROR",
-     "error": "Error message",
-     "timestamp": 1681234567890
-   }
-   ```
-
-## Block Metrics
-
-Each block now includes a `metrics` object with the following properties:
-
-| Metric | Description | Units |
-|--------|-------------|-------|
-| `averageTxValue` | Average value of all transactions in the block | Wei (string) |
-| `highestTxValue` | Highest transaction value in the block | Wei (string) |
-| `lowestTxValue` | Lowest non-zero transaction value in the block | Wei (string) |
-| `transactionCounts` | Number of each transaction type | Object |
-| `transactionCounts.legacy` | Number of legacy transactions | Number |
-| `transactionCounts.eip1559` | Number of EIP-1559 transactions | Number |
-| `transactionCounts.blob` | Number of blob transactions (EIP-4844) | Number |
-| `gasSums` | Sum of gas limits by transaction type | Object |
-| `gasSums.legacy` | Total gas for legacy transactions | String |
-| `gasSums.eip1559` | Total gas for EIP-1559 transactions | String |
-| `gasSums.blob` | Total gas for blob transactions | String |
-| `gasSums.total` | Total gas for all transactions | String |
-| `highestGasPrice` | Highest gas price of any transaction | Wei (string) |
-| `lowestGasPrice` | Lowest gas price of any transaction | Wei (string) |
-| `averageGasPrice` | Average gas price across all transactions | Wei (string) |
-
-## Architecture
-
-The system is built with a modular architecture:
-
-- **EthereumService**: Handles blockchain connection and event subscription
-- **BlockManager**: Maintains the in-memory block cache and emits events
-- **WebSocketServer**: Manages client connections and message handling
-- **BlockMetrics**: Calculates transaction metrics for each block
-- **Application**: Coordinates all components and handles lifecycle
-
-## Troubleshooting
-
-### Connection Issues
-
-- Ensure your Ethereum node URL in the `.env` file is valid and accessible
-- Check that you're using the correct port specified in your `.env` file
-- Make sure your firewall allows WebSocket connections on the configured port
-
-### Large Block Handling
-
-For handling large blocks with many transactions:
-
-1. Increase the `WS_PORT` number in your `.env` if necessary
-2. Consider reducing the number of blocks cached with `NUM_BLOCKS_TO_CACHE` 
-3. Use selective filtering in your subscription to include only needed fields
-
-### Client-Side Considerations
-
-When implementing a client:
-
-- Configure appropriate WebSocket buffer sizes for large blocks
-- Implement reconnection logic for handling disconnections
-- Use selective field filtering to reduce payload size
 
 ## Testing with Postman
 
@@ -259,12 +145,35 @@ You can use Postman to test the WebSocket server:
 Ethereum blocks can be large, especially when including transactions. To handle this in Postman:
 
 1. Go to Settings (Settings Tab - underneath the Request address URL)
-2. Configure 'Maximum Message Size' to 0.
+2. Configure 'Maximum Message Size' to 0
 
-## License
+This setting is crucial because Ethereum blocks with many transactions can exceed Postman's default message size limits, resulting in connection errors or truncated data.
 
-MIT
+## Future Extensions
+
+The system is designed to be modular and extensible, with potential expansions including:
+
+- Advanced filtering capabilities for specific transaction types or addresses
+- Persistent storage for historical block data
+- Real-time analytics on blockchain metrics
+- Web-based dashboard for visual monitoring
+- Smart contract event monitoring and notification
+- Support for multiple blockchain networks
 
 ## Contributing
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. 
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Ethereum Foundation for the blockchain protocol
+- QuickNode for reliable node infrastructure
+- web3.js contributors for the Ethereum JavaScript API
+
+---
+
+*Ethereum Block Tracker: Your window into the blockchain, one block at a time.* 
