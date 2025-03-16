@@ -1,93 +1,10 @@
-import { BlockManager } from '../src/managers/BlockManager';
+import WebSocket from 'ws';
+import dotenv from 'dotenv';
 import { BlockData, TransactionData } from '../src/interfaces/Block';
-import { BlockMetrics } from '../src/utils/BlockMetrics';
+import { BlockMetricsData } from '../src/interfaces/BlockMetrics';
 
-// Example transaction data
-const createExampleTransactions = (): TransactionData[] => {
-  return [
-    {
-      hash: '0x123',
-      nonce: '1',
-      blockHash: '0xabc',
-      blockNumber: '100',
-      transactionIndex: '0',
-      from: '0xsender1',
-      to: '0xrecipient1',
-      value: '1000000000000000000', // 1 ETH
-      input: '0x',
-      gas: '21000',
-      gasPrice: '20000000000', // 20 Gwei
-      type: '0', // Legacy
-      chainId: '1',
-      v: '0x1b',
-      r: '0x...',
-      s: '0x...'
-    },
-    {
-      hash: '0x456',
-      nonce: '5',
-      blockHash: '0xabc',
-      blockNumber: '100',
-      transactionIndex: '1',
-      from: '0xsender2',
-      to: '0xrecipient2',
-      value: '500000000000000000', // 0.5 ETH
-      input: '0x',
-      gas: '100000',
-      gasPrice: '', // No gas price for EIP-1559
-      maxFeePerGas: '30000000000', // 30 Gwei
-      maxPriorityFeePerGas: '2000000000', // 2 Gwei
-      type: '2', // EIP-1559
-      chainId: '1',
-      v: '0x0',
-      r: '0x...',
-      s: '0x...'
-    },
-    {
-      hash: '0x789',
-      nonce: '10',
-      blockHash: '0xabc',
-      blockNumber: '100',
-      transactionIndex: '2',
-      from: '0xsender3',
-      to: '0xrecipient3',
-      value: '200000000000000000', // 0.2 ETH
-      input: '0x',
-      gas: '300000',
-      gasPrice: '', // No gas price for blob tx
-      maxFeePerGas: '25000000000', // 25 Gwei
-      maxPriorityFeePerGas: '1500000000', // 1.5 Gwei
-      maxFeePerBlobGas: '10000000', // 0.01 Gwei
-      blobVersionedHashes: ['0xblob1', '0xblob2'],
-      type: '3', // Blob transaction (EIP-4844)
-      chainId: '1',
-      v: '0x0',
-      r: '0x...',
-      s: '0x...'
-    }
-  ];
-};
-
-// Create an example block
-const createExampleBlock = (): BlockData => {
-  return {
-    number: '100',
-    hash: '0xabc',
-    parentHash: '0xdef',
-    timestamp: '1689342000',
-    miner: '0xminer',
-    difficulty: '1',
-    totalDifficulty: '1000',
-    size: '1000',
-    gasLimit: '30000000',
-    gasUsed: '63000',
-    baseFeePerGas: '15000000000', // 15 Gwei
-    transactionsRoot: '0xtxroot',
-    receiptsRoot: '0xreceiptsroot',
-    stateRoot: '0xstateroot',
-    transactions: createExampleTransactions()
-  };
-};
+// Load environment variables
+dotenv.config();
 
 // Helper function to format wei to ETH
 const weiToEth = (wei: string): string => {
@@ -99,30 +16,19 @@ const weiToGwei = (wei: string): string => {
   return (Number(wei) / 1e9).toString();
 };
 
-// Main example function
-const runExample = () => {
-  console.log('Block Metrics Example');
-  console.log('--------------------');
-
-  // Create an example block
-  const block = createExampleBlock();
-
-  // Calculate metrics directly
-  const metrics = BlockMetrics.calculateMetrics(block.transactions);
-  console.log('Direct calculation of metrics:');
-  console.log(JSON.stringify(metrics, null, 2));
-
-  // Use BlockManager to calculate metrics
-  const blockManager = new BlockManager();
-  blockManager.addBlock(block);
+// Helper to print metrics to console
+const printMetrics = (block: BlockData): void => {
+  if (!block || !block.metrics) {
+    console.log('No metrics available for this block');
+    return;
+  }
   
-  // Get the block with metrics
-  const storedBlock = blockManager.getBlockByNumber('100');
-  console.log('\nMetrics from BlockManager:');
-  console.log(JSON.stringify(storedBlock?.metrics, null, 2));
-
-  // Metrics explanation
-  console.log('\nMetrics explanation:');
+  const metrics = block.metrics as BlockMetricsData;
+  
+  console.log(`\n======= BLOCK ${block.number} METRICS =======`);
+  console.log(`Block hash: ${block.hash}`);
+  console.log(`Block timestamp: ${new Date(parseInt(block.timestamp) * 1000).toLocaleString()}`);
+  console.log(`Transactions count: ${block.transactions.length}`);
   
   // Transaction value metrics
   console.log('\nTransaction Value Metrics:');
@@ -148,7 +54,96 @@ const runExample = () => {
   console.log(`- Highest Gas Price: ${weiToGwei(metrics.highestGasPrice)} Gwei`);
   console.log(`- Lowest Gas Price: ${weiToGwei(metrics.lowestGasPrice)} Gwei`);
   console.log(`- Average Gas Price: ${weiToGwei(metrics.averageGasPrice)} Gwei`);
+  console.log('\n========================================\n');
+};
+
+// Main function to connect to WebSocket and process real-time block data
+const connectToBlockStream = () => {
+  // Get WebSocket server URL from environment variables or use default
+  const wsUrl = process.env.WS_URL || 'ws://localhost:3000';
+  
+  console.log(`Connecting to WebSocket server at ${wsUrl}...`);
+  
+  // Create WebSocket connection
+  const ws = new WebSocket(wsUrl);
+  
+  // Connection opened
+  ws.on('open', () => {
+    console.log('Connected to WebSocket server');
+    console.log('Waiting for real-time block data...');
+    
+    // Subscribe to all blocks with full transactions
+    ws.send(JSON.stringify({
+      type: 'subscribe',
+      data: {
+        topic: 'all_blocks',
+        options: {
+          includeTransactions: true
+        }
+      }
+    }));
+  });
+  
+  // Listen for messages
+  ws.on('message', (data) => {
+    try {
+      const message = JSON.parse(data.toString());
+      
+      // Handle different message types
+      switch (message.type) {
+        case 'initial_blocks':
+          console.log(`Received ${message.data.length} initial blocks`);
+          // Print the most recent block's metrics
+          if (message.data.length > 0) {
+            const latestBlock = message.data[0] as BlockData;
+            console.log(`Latest block in cache: ${latestBlock.number}`);
+            printMetrics(latestBlock);
+          }
+          break;
+          
+        case 'new_block':
+          // New block received
+          const block = message.data as BlockData;
+          console.log(`\nReceived new block: ${block.number}`);
+          printMetrics(block);
+          break;
+          
+        case 'error':
+          console.error(`WebSocket error: ${message.data}`);
+          break;
+          
+        default:
+          console.log(`Received unknown message type: ${message.type}`);
+      }
+    } catch (error) {
+      console.error('Error parsing WebSocket message:', error);
+    }
+  });
+  
+  // Handle WebSocket errors
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
+  });
+  
+  // Handle WebSocket close
+  ws.on('close', () => {
+    console.log('Disconnected from WebSocket server');
+    // Try to reconnect after a delay
+    setTimeout(() => {
+      console.log('Attempting to reconnect...');
+      connectToBlockStream();
+    }, 5000);
+  });
+  
+  // Handle CTRL+C to exit gracefully
+  process.on('SIGINT', () => {
+    console.log('Closing WebSocket connection...');
+    ws.close();
+    process.exit(0);
+  });
 };
 
 // Run the example
-runExample(); 
+console.log('Block Metrics Real-time Example');
+console.log('-------------------------------');
+connectToBlockStream(); 

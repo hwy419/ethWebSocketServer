@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "client": "node examples/client.js",
+    "metrics": "ts-node examples/blockMetrics.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
