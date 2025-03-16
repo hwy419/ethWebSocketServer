@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import dotenv from 'dotenv';
 import { BlockData, TransactionData } from '../src/interfaces/Block';
 import { BlockMetricsData } from '../src/interfaces/BlockMetrics';
+import { MessageType, Subscription } from '../src/interfaces/WebSocketMessage';
 
 // Load environment variables
 dotenv.config();
@@ -74,7 +75,7 @@ const connectToBlockStream = () => {
     
     // Subscribe to all blocks with full transactions
     ws.send(JSON.stringify({
-      type: 'subscribe',
+      type: MessageType.SUBSCRIBE,
       data: {
         topic: 'all_blocks',
         options: {
@@ -91,7 +92,7 @@ const connectToBlockStream = () => {
       
       // Handle different message types
       switch (message.type) {
-        case 'initial_blocks':
+        case 'INITIAL_BLOCKS':
           console.log(`Received ${message.data.length} initial blocks`);
           // Print the most recent block's metrics
           if (message.data.length > 0) {
@@ -101,15 +102,15 @@ const connectToBlockStream = () => {
           }
           break;
           
-        case 'new_block':
+        case 'NEW_BLOCK':
           // New block received
           const block = message.data as BlockData;
           console.log(`\nReceived new block: ${block.number}`);
           printMetrics(block);
           break;
           
-        case 'error':
-          console.error(`WebSocket error: ${message.data}`);
+        case 'ERROR':
+          console.error(`WebSocket error: ${message.error || message.data}`);
           break;
           
         default:
