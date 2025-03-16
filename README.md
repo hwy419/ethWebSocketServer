@@ -8,6 +8,7 @@ A robust server that tracks Ethereum blocks and shares updates with connected cl
 - 📡 WebSocket API for clients to subscribe to block updates
 - 🏪 In-memory caching of recent blocks
 - 🔎 Support for filtering block data based on client preferences
+- 📊 Rich block metrics for transaction analysis
 - ⚡ Chain reorganization detection and notification
 - 🛡️ Error handling and automatic reconnection
 
@@ -33,7 +34,7 @@ A robust server that tracks Ethereum blocks and shares updates with connected cl
 3. Create a `.env` file in the root directory with your configuration:
    ```
    # Ethereum Node Connection
-   ETHEREUM_NODE_URL=your_quicknode_ethereum_endpoint_url
+   ETHEREUM_NODE_URL=your_ethereum_endpoint_url
    
    # WebSocket Server Configuration
    WS_PORT=3000
@@ -61,6 +62,23 @@ npm run build
 npm start
 ```
 
+### Running the Example Client
+
+An example client implementation is included to test connectivity:
+
+```
+npm run client
+```
+
+### Block Metrics Example
+
+To explore the block metrics functionality:
+
+```
+cd examples
+npx ts-node blockMetrics.ts
+```
+
 ## WebSocket API
 
 Clients can connect to the WebSocket server at `ws://localhost:3000` (or whatever port you configure).
@@ -77,7 +95,7 @@ Clients can connect to the WebSocket server at `ws://localhost:3000` (or whateve
        "topic": "all_blocks",
        "options": {
          "includeTransactions": true,
-         "filterFields": ["hash", "number", "timestamp"]
+         "filterFields": ["hash", "number", "timestamp", "metrics"]
        }
      }
    }
@@ -108,7 +126,31 @@ Clients can connect to the WebSocket server at `ws://localhost:3000` (or whateve
    ```json
    {
      "type": "NEW_BLOCK",
-     "data": {/* Block object */},
+     "data": {
+       "hash": "0x...",
+       "number": "1234567",
+       "timestamp": "1681234567",
+       "metrics": {
+         "averageTxValue": "125000000000000000",
+         "highestTxValue": "1000000000000000000",
+         "lowestTxValue": "100000000000000",
+         "transactionCounts": {
+           "legacy": 5,
+           "eip1559": 42,
+           "blob": 3
+         },
+         "gasSums": {
+           "legacy": "105000",
+           "eip1559": "2100000",
+           "blob": "600000",
+           "total": "2805000"
+         },
+         "highestGasPrice": "25000000000",
+         "lowestGasPrice": "12000000000",
+         "averageGasPrice": "18500000000"
+       },
+       // Other block fields...
+     },
      "timestamp": 1681234567890
    }
    ```
@@ -122,6 +164,28 @@ Clients can connect to the WebSocket server at `ws://localhost:3000` (or whateve
    }
    ```
 
+## Block Metrics
+
+Each block now includes a `metrics` object with the following properties:
+
+| Metric | Description | Units |
+|--------|-------------|-------|
+| `averageTxValue` | Average value of all transactions in the block | Wei (string) |
+| `highestTxValue` | Highest transaction value in the block | Wei (string) |
+| `lowestTxValue` | Lowest non-zero transaction value in the block | Wei (string) |
+| `transactionCounts` | Number of each transaction type | Object |
+| `transactionCounts.legacy` | Number of legacy transactions | Number |
+| `transactionCounts.eip1559` | Number of EIP-1559 transactions | Number |
+| `transactionCounts.blob` | Number of blob transactions (EIP-4844) | Number |
+| `gasSums` | Sum of gas limits by transaction type | Object |
+| `gasSums.legacy` | Total gas for legacy transactions | String |
+| `gasSums.eip1559` | Total gas for EIP-1559 transactions | String |
+| `gasSums.blob` | Total gas for blob transactions | String |
+| `gasSums.total` | Total gas for all transactions | String |
+| `highestGasPrice` | Highest gas price of any transaction | Wei (string) |
+| `lowestGasPrice` | Lowest gas price of any transaction | Wei (string) |
+| `averageGasPrice` | Average gas price across all transactions | Wei (string) |
+
 ## Architecture
 
 The system is built with a modular architecture:
@@ -129,15 +193,32 @@ The system is built with a modular architecture:
 - **EthereumService**: Handles blockchain connection and event subscription
 - **BlockManager**: Maintains the in-memory block cache and emits events
 - **WebSocketServer**: Manages client connections and message handling
+- **BlockMetrics**: Calculates transaction metrics for each block
 - **Application**: Coordinates all components and handles lifecycle
 
-## License
+## Troubleshooting
 
-MIT
+### Connection Issues
 
-## Contributing
+- Ensure your Ethereum node URL in the `.env` file is valid and accessible
+- Check that you're using the correct port specified in your `.env` file
+- Make sure your firewall allows WebSocket connections on the configured port
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+### Large Block Handling
+
+For handling large blocks with many transactions:
+
+1. Increase the `WS_PORT` number in your `.env` if necessary
+2. Consider reducing the number of blocks cached with `NUM_BLOCKS_TO_CACHE` 
+3. Use selective filtering in your subscription to include only needed fields
+
+### Client-Side Considerations
+
+When implementing a client:
+
+- Configure appropriate WebSocket buffer sizes for large blocks
+- Implement reconnection logic for handling disconnections
+- Use selective field filtering to reduce payload size
 
 ## Testing with Postman
 
@@ -157,7 +238,7 @@ You can use Postman to test the WebSocket server:
        "topic": "all_blocks",
        "options": {
          "includeTransactions": true,
-         "filterFields": ["hash", "number", "timestamp", "miner"]
+         "filterFields": ["hash", "number", "timestamp", "miner", "metrics"]
        }
      }
    }
@@ -180,18 +261,10 @@ Ethereum blocks can be large, especially when including transactions. To handle 
 1. Go to Settings (Settings Tab - underneath the Request address URL)
 2. Configure 'Maximum Message Size' to 0.
 
-### Troubleshooting Connection Issues
+## License
 
-- If you're receiving incomplete data or connection errors, try increasing the maximum payload size
-- Ensure your Ethereum node URL in the `.env` file is valid and accessible
-- Check that you're using the correct port specified in your `.env` file
+MIT
 
-## Running the Example Client
+## Contributing
 
-An example client implementation is included to test connectivity:
-
-```
-npm run client
-```
-
-This will run the example client that connects to the WebSocket server and subscribes to block updates. 
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. 

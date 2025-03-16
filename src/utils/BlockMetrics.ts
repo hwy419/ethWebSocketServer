@@ -1,5 +1,5 @@
 import { TransactionData } from '../interfaces/Block';
-import { BlockMetricsData, TransactionCounts } from '../interfaces/BlockMetrics';
+import { BlockMetricsData, TransactionCounts, GasSums } from '../interfaces/BlockMetrics';
 
 export class BlockMetrics {
   /**
@@ -11,10 +11,18 @@ export class BlockMetrics {
     if (transactions.length === 0) {
       return {
         averageTxValue: '0',
+        highestTxValue: '0',
+        lowestTxValue: '0',
         transactionCounts: {
           legacy: 0,
           eip1559: 0,
           blob: 0
+        },
+        gasSums: {
+          legacy: '0',
+          eip1559: '0',
+          blob: '0',
+          total: '0'
         },
         highestGasPrice: '0',
         lowestGasPrice: '0',
@@ -32,22 +40,57 @@ export class BlockMetrics {
       blob: 0
     };
     
+    // Initialize gas sums
+    let gasSumLegacy = BigInt(0);
+    let gasSumEIP1559 = BigInt(0);
+    let gasSumBlob = BigInt(0);
+    
     // Initialize gas price metrics
     let highestGasPrice = BigInt(0);
     let lowestGasPrice = BigInt(Number.MAX_SAFE_INTEGER);
+    
+    // Initialize transaction value metrics
+    let highestTxValue = BigInt(0);
+    let lowestTxValue = BigInt(Number.MAX_SAFE_INTEGER);
+    
+    // First pass: find non-zero values to calculate lowest
+    let nonZeroValues: bigint[] = [];
+    transactions.forEach(tx => {
+      const txValue = BigInt(tx.value || '0');
+      if (txValue > 0) {
+        nonZeroValues.push(txValue);
+      }
+    });
+    
+    // Sort non-zero values to find the lowest
+    if (nonZeroValues.length > 0) {
+      nonZeroValues.sort((a, b) => a < b ? -1 : a > b ? 1 : 0);
+      lowestTxValue = nonZeroValues[0];
+    }
     
     transactions.forEach(tx => {
       // Calculate value metrics
       const txValue = BigInt(tx.value || '0');
       totalValue += txValue;
       
-      // Count transaction types
+      // Update highest transaction value
+      if (txValue > highestTxValue) {
+        highestTxValue = txValue;
+      }
+      
+      // Calculate gas used (from gas field)
+      const gasAmount = BigInt(tx.gas || '0');
+      
+      // Count transaction types and sum gas
       if (tx.type === '2') {
         transactionCounts.eip1559++;
+        gasSumEIP1559 += gasAmount;
       } else if (tx.type === '3') {
         transactionCounts.blob++;
+        gasSumBlob += gasAmount;
       } else {
         transactionCounts.legacy++;
+        gasSumLegacy += gasAmount;
       }
       
       // Calculate gas price metrics
@@ -69,6 +112,14 @@ export class BlockMetrics {
       lowestGasPrice = BigInt(0);
     }
     
+    // If lowestTxValue is still the initial value, set it to 0
+    if (lowestTxValue === BigInt(Number.MAX_SAFE_INTEGER)) {
+      lowestTxValue = BigInt(0);
+    }
+    
+    // Calculate total gas sum
+    const totalGasSum = gasSumLegacy + gasSumEIP1559 + gasSumBlob;
+    
     // Calculate averages
     const averageValue = transactions.length > 0 
       ? totalValue / BigInt(transactions.length) 
@@ -80,7 +131,15 @@ export class BlockMetrics {
     
     return {
       averageTxValue: averageValue.toString(),
+      highestTxValue: highestTxValue.toString(),
+      lowestTxValue: lowestTxValue.toString(),
       transactionCounts,
+      gasSums: {
+        legacy: gasSumLegacy.toString(),
+        eip1559: gasSumEIP1559.toString(),
+        blob: gasSumBlob.toString(),
+        total: totalGasSum.toString()
+      },
       highestGasPrice: highestGasPrice.toString(),
       lowestGasPrice: lowestGasPrice.toString(),
       averageGasPrice: averageGasPrice.toString()

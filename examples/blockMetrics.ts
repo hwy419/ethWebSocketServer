@@ -33,7 +33,7 @@ const createExampleTransactions = (): TransactionData[] => {
       to: '0xrecipient2',
       value: '500000000000000000', // 0.5 ETH
       input: '0x',
-      gas: '21000',
+      gas: '100000',
       gasPrice: '', // No gas price for EIP-1559
       maxFeePerGas: '30000000000', // 30 Gwei
       maxPriorityFeePerGas: '2000000000', // 2 Gwei
@@ -53,7 +53,7 @@ const createExampleTransactions = (): TransactionData[] => {
       to: '0xrecipient3',
       value: '200000000000000000', // 0.2 ETH
       input: '0x',
-      gas: '21000',
+      gas: '300000',
       gasPrice: '', // No gas price for blob tx
       maxFeePerGas: '25000000000', // 25 Gwei
       maxPriorityFeePerGas: '1500000000', // 1.5 Gwei
@@ -89,6 +89,16 @@ const createExampleBlock = (): BlockData => {
   };
 };
 
+// Helper function to format wei to ETH
+const weiToEth = (wei: string): string => {
+  return (Number(wei) / 1e18).toString();
+};
+
+// Helper function to format wei to Gwei
+const weiToGwei = (wei: string): string => {
+  return (Number(wei) / 1e9).toString();
+};
+
 // Main example function
 const runExample = () => {
   console.log('Block Metrics Example');
@@ -113,11 +123,31 @@ const runExample = () => {
 
   // Metrics explanation
   console.log('\nMetrics explanation:');
-  console.log(`- Average Transaction Value: ${Number(metrics.averageTxValue) / 1e18} ETH`);
-  console.log(`- Transaction Types: ${metrics.transactionCounts.legacy} Legacy, ${metrics.transactionCounts.eip1559} EIP-1559, ${metrics.transactionCounts.blob} Blob`);
-  console.log(`- Highest Gas Price: ${Number(metrics.highestGasPrice) / 1e9} Gwei`);
-  console.log(`- Lowest Gas Price: ${Number(metrics.lowestGasPrice) / 1e9} Gwei`);
-  console.log(`- Average Gas Price: ${Number(metrics.averageGasPrice) / 1e9} Gwei`);
+  
+  // Transaction value metrics
+  console.log('\nTransaction Value Metrics:');
+  console.log(`- Average Transaction Value: ${weiToEth(metrics.averageTxValue)} ETH`);
+  console.log(`- Highest Transaction Value: ${weiToEth(metrics.highestTxValue)} ETH`);
+  console.log(`- Lowest Transaction Value: ${weiToEth(metrics.lowestTxValue)} ETH`);
+  
+  // Transaction type counts
+  console.log('\nTransaction Type Counts:');
+  console.log(`- Legacy: ${metrics.transactionCounts.legacy}`);
+  console.log(`- EIP-1559: ${metrics.transactionCounts.eip1559}`);
+  console.log(`- Blob: ${metrics.transactionCounts.blob}`);
+  
+  // Gas sums by transaction type
+  console.log('\nGas Sums by Transaction Type:');
+  console.log(`- Legacy: ${metrics.gasSums.legacy} gas units`);
+  console.log(`- EIP-1559: ${metrics.gasSums.eip1559} gas units`);
+  console.log(`- Blob: ${metrics.gasSums.blob} gas units`);
+  console.log(`- Total: ${metrics.gasSums.total} gas units`);
+  
+  // Gas price metrics
+  console.log('\nGas Price Metrics:');
+  console.log(`- Highest Gas Price: ${weiToGwei(metrics.highestGasPrice)} Gwei`);
+  console.log(`- Lowest Gas Price: ${weiToGwei(metrics.lowestGasPrice)} Gwei`);
+  console.log(`- Average Gas Price: ${weiToGwei(metrics.averageGasPrice)} Gwei`);
 };
 
 // Run the example
