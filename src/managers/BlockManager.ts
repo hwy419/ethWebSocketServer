@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events';
 import { BlockData } from '../interfaces/Block';
+import { BlockMetrics } from '../utils/BlockMetrics';
 
 export class BlockManager extends EventEmitter {
   private recentBlocks: BlockData[] = [];
@@ -25,6 +26,9 @@ export class BlockManager extends EventEmitter {
   }
 
   addBlock(block: BlockData): void {
+    // Calculate metrics for the block
+    block.metrics = BlockMetrics.calculateMetrics(block.transactions);
+
     // Check if this is a new block or a replacement (chain reorg)
     const existingBlockByNumber = this.blocksByNumber.get(block.number);
     const isReorg = existingBlockByNumber && existingBlockByNumber.hash !== block.hash;

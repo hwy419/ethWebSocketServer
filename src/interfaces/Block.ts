@@ -25,6 +25,8 @@ export interface TransactionData {
   v: string;
   r: string;
   s: string;
+  blobVersionedHashes?: string[];
+  maxFeePerBlobGas?: string;
 }
 
 export interface BlockData {
@@ -47,4 +49,15 @@ export interface BlockData {
   withdrawals?: WithdrawalData[];
   withdrawalsRoot?: string;
   transactions: TransactionData[];
+  metrics?: {
+    averageTxValue: string;
+    transactionCounts: {
+      legacy: number;
+      eip1559: number;
+      blob: number;
+    };
+    highestGasPrice: string;
+    lowestGasPrice: string;
+    averageGasPrice: string;
+  };
 } 
