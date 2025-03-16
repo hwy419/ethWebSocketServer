@@ -1,0 +1,34 @@
+{
+  "name": "ethwebsocketserver",
+  "version": "1.0.0",
+  "description": "A WebSocket server that tracks Ethereum blocks and shares updates with clients",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "client": "node examples/client.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^22.13.10",
+    "@types/ws": "^8.18.0",
+    "dotenv": "^16.4.7",
+    "typescript": "^5.8.2",
+    "web3": "^4.16.0",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.26.1",
+    "@typescript-eslint/parser": "^8.26.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.22.0",
+    "nodemon": "^3.1.9",
+    "ts-node": "^10.9.2"
+  }
+}

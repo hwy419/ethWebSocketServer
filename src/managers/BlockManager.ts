@@ -1,0 +1,118 @@
+import { EventEmitter } from 'events';
+import { BlockData } from '../interfaces/Block';
+
+export class BlockManager extends EventEmitter {
+  private recentBlocks: BlockData[] = [];
+  private blocksByHash: Map<string, BlockData> = new Map();
+  private blocksByNumber: Map<string, BlockData> = new Map();
+  private maxBlocks: number;
+
+  constructor(maxBlocks: number = 50) {
+    super();
+    this.maxBlocks = maxBlocks;
+  }
+
+  getRecentBlocks(): BlockData[] {
+    return [...this.recentBlocks];
+  }
+
+  getBlockByHash(hash: string): BlockData | undefined {
+    return this.blocksByHash.get(hash);
+  }
+
+  getBlockByNumber(number: string): BlockData | undefined {
+    return this.blocksByNumber.get(number);
+  }
+
+  addBlock(block: BlockData): void {
+    // Check if this is a new block or a replacement (chain reorg)
+    const existingBlockByNumber = this.blocksByNumber.get(block.number);
+    const isReorg = existingBlockByNumber && existingBlockByNumber.hash !== block.hash;
+
+    // Add to maps
+    this.blocksByHash.set(block.hash, block);
+    this.blocksByNumber.set(block.number, block);
+
+    // If the block is new (not already in our cache)
+    if (!existingBlockByNumber) {
+      // Add to the front of the array
+      this.recentBlocks.unshift(block);
+
+      // If we've exceeded max blocks, remove the oldest
+      if (this.recentBlocks.length > this.maxBlocks) {
+        const removedBlock = this.recentBlocks.pop();
+        if (removedBlock) {
+          // Check if the block is still referenced by a different number
+          // (this would be rare, but we should clean up properly)
+          const currentByHash = this.blocksByHash.get(removedBlock.hash);
+          if (currentByHash && currentByHash.number === removedBlock.number) {
+            this.blocksByHash.delete(removedBlock.hash);
+          }
+        }
+      }
+
+      // Emit new block event
+      this.emit('newBlock', block);
+    } else if (isReorg) {
+      // Handle chain reorganization
+      // Find the block in the array and replace it
+      const index = this.recentBlocks.findIndex(b => b.number === block.number);
+      if (index !== -1) {
+        this.recentBlocks[index] = block;
+      }
+
+      // Emit reorg event
+      this.emit('blockReorganization', {
+        oldBlock: existingBlockByNumber,
+        newBlock: block
+      });
+    }
+  }
+
+  addBlocks(blocks: BlockData[]): void {
+    // Sort blocks by number in descending order (newest first)
+    const sortedBlocks = [...blocks].sort((a, b) => 
+      parseInt(b.number) - parseInt(a.number)
+    );
+
+    // Add each block
+    for (const block of sortedBlocks) {
+      this.addBlock(block);
+    }
+  }
+
+  clear(): void {
+    this.recentBlocks = [];
+    this.blocksByHash.clear();
+    this.blocksByNumber.clear();
+  }
+
+  // Filter blocks based on criteria
+  filterBlocks(filterFields?: string[], includeTransactions: boolean = true): BlockData[] {
+    let filteredBlocks = this.recentBlocks;
+    
+    if (!includeTransactions) {
+      filteredBlocks = filteredBlocks.map(block => {
+        const { transactions, ...blockWithoutTransactions } = block;
+        return {
+          ...blockWithoutTransactions,
+          transactions: transactions.map(tx => ({ hash: tx.hash }))
+        } as BlockData;
+      });
+    }
+    
+    if (filterFields && filterFields.length > 0) {
+      filteredBlocks = filteredBlocks.map(block => {
+        const filteredBlock: any = {};
+        filterFields.forEach(field => {
+          if (field in block) {
+            filteredBlock[field] = (block as any)[field];
+          }
+        });
+        return filteredBlock as BlockData;
+      });
+    }
+    
+    return filteredBlocks;
+  }
+} 
