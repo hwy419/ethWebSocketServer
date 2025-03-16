@@ -59,10 +59,14 @@ export class EthereumService extends EventEmitter {
       
       subscription.on('data', async (blockHeader: any) => {
         try {
+          console.log(`EthereumService: Received new block header for block ${blockHeader.number}`);
           // Fetch the full block data including transactions
           const block = await this.getBlockByNumber(blockHeader.number);
           if (block) {
+            console.log(`EthereumService: Emitting new block ${block.number}`);
             this.emit('newBlock', block);
+          } else {
+            console.error(`EthereumService: Failed to get full block data for block ${blockHeader.number}`);
           }
         } catch (error) {
           console.error('Error fetching full block data:', error);

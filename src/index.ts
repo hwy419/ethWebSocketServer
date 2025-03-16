@@ -35,6 +35,7 @@ class Application {
   private setupEventHandlers(): void {
     // When EthereumService emits a new block, add it to the BlockManager
     this.ethereumService.on('newBlock', (block) => {
+      console.log(`Application: Received new block ${block.number} from EthereumService, adding to BlockManager`);
       this.blockManager.addBlock(block);
     });
 

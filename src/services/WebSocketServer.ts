@@ -56,11 +56,13 @@ export class WebSocketServer extends EventEmitter {
   private setupBlockManagerListeners(): void {
     // Listen for new blocks
     this.blockManager.on('newBlock', (block: BlockData) => {
+      console.log(`WebSocketServer received new block: ${block.number} (hash: ${block.hash.substring(0, 10)}...)`);
       this.broadcastNewBlock(block);
     });
 
     // Listen for block reorganizations
     this.blockManager.on('blockReorganization', (data: { oldBlock: BlockData, newBlock: BlockData }) => {
+      console.log(`WebSocketServer received block reorganization for block ${data.newBlock.number}`);
       this.broadcastBlockReorganization(data);
     });
   }
@@ -68,15 +70,28 @@ export class WebSocketServer extends EventEmitter {
   private handleConnection(socket: WebSocket): void {
     const clientId = this.generateClientId();
     
+    console.log(`New client connected: ${clientId}`);
+    
     const client: Client = {
       id: clientId,
       socket,
-      subscriptions: [],
+      subscriptions: [
+        // Automatically subscribe the client to all_blocks
+        {
+          topic: 'all_blocks',
+          options: {
+            includeTransactions: true
+          }
+        }
+      ],
       isAlive: true
     };
 
+    console.log(`Created client with ID ${clientId} and automatic subscription to all_blocks`);
+
     // Add client to map
     this.clients.set(clientId, client);
+    console.log(`Added client ${clientId} to clients map. Total clients: ${this.clients.size}`);
 
     // Setup event handlers for the client
     socket.on('message', (message) => this.handleMessage(client, message));
@@ -87,7 +102,7 @@ export class WebSocketServer extends EventEmitter {
 
     socket.on('close', () => {
       this.clients.delete(clientId);
-      console.log(`Client ${clientId} disconnected`);
+      console.log(`Client ${clientId} disconnected. Total clients remaining: ${this.clients.size}`);
     });
 
     socket.on('error', (error) => {
@@ -97,6 +112,7 @@ export class WebSocketServer extends EventEmitter {
 
     // Send initial blocks to the client
     this.sendInitialBlocks(client);
+    console.log(`Client ${clientId} connected and automatically subscribed to all_blocks`);
   }
 
   private handleMessage(client: Client, data: any): void {
@@ -169,11 +185,17 @@ export class WebSocketServer extends EventEmitter {
   }
 
   private broadcastNewBlock(block: BlockData): void {
+    console.log(`Broadcasting new block ${block.number} to ${this.clients.size} clients`);
+    let clientsReceivingBlock = 0;
+    
     this.clients.forEach((client) => {
       // Check if client is subscribed to blocks
       const subscription = client.subscriptions.find(sub => sub.topic === 'all_blocks');
       
       if (subscription) {
+        clientsReceivingBlock++;
+        console.log(`Sending block ${block.number} to client ${client.id}`);
+        
         // Apply any filters from the subscription
         let blockToSend = block;
         
@@ -206,8 +228,12 @@ export class WebSocketServer extends EventEmitter {
           data: blockToSend,
           timestamp: Date.now()
         });
+      } else {
+        console.log(`Client ${client.id} not subscribed to all_blocks - skipping`);
       }
     });
+    
+    console.log(`Sent block ${block.number} to ${clientsReceivingBlock}/${this.clients.size} clients`);
   }
 
   private broadcastBlockReorganization(data: { oldBlock: BlockData, newBlock: BlockData }): void {
@@ -231,7 +257,15 @@ export class WebSocketServer extends EventEmitter {
 
   private sendToClient(client: Client, message: WebSocketMessage): void {
     if (client.socket.readyState === WebSocket.OPEN) {
-      client.socket.send(serializeBigInt(message));
+      try {
+        const serializedMessage = serializeBigInt(message);
+        client.socket.send(serializedMessage);
+        console.log(`Successfully sent ${message.type} message to client ${client.id}`);
+      } catch (error) {
+        console.error(`Error sending message to client ${client.id}:`, error);
+      }
+    } else {
+      console.warn(`Cannot send message to client ${client.id}: socket not open (state: ${client.socket.readyState})`);
     }
   }
 

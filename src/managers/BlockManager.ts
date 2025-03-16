@@ -52,6 +52,7 @@ export class BlockManager extends EventEmitter {
       }
 
       // Emit new block event
+      console.log(`BlockManager: Emitting newBlock event for block ${block.number}`);
       this.emit('newBlock', block);
     } else if (isReorg) {
       // Handle chain reorganization
@@ -62,10 +63,13 @@ export class BlockManager extends EventEmitter {
       }
 
       // Emit reorg event
+      console.log(`BlockManager: Emitting blockReorganization event for block ${block.number}`);
       this.emit('blockReorganization', {
         oldBlock: existingBlockByNumber,
         newBlock: block
       });
+    } else {
+      console.log(`BlockManager: Block ${block.number} already exists with same hash, no event emitted`);
     }
   }
 
