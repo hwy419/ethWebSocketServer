@@ -70,12 +70,14 @@ export default function Home() {
   } = useEthereumBlocks()
   
   // Find the currently selected block
-  const selectedBlock = blocks.find((block) => block.number === selectedBlockNumber)
+  const selectedBlock = selectedBlockNumber 
+    ? blocks.find((block) => parseInt(block.number) === selectedBlockNumber) || null
+    : null
   
   return (
     <DashboardLayout
-      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
       isDark={isDarkMode}
+      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
     >
       <div className="flex flex-col gap-6 p-6">
         {/* Connection status banner */}

@@ -3,7 +3,7 @@
 import React from "react"
 import type { BlockWithStats, Transaction } from "../hooks/useEthereumBlocks"
 import type { ColorScheme } from "./BlockRow"
-import { formatEthValue } from "../lib/utils"
+import { formatEthValue } from "./utils/formatters"
 
 // Custom treemap visualization for transactions
 interface TreemapProps {

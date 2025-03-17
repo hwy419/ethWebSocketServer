@@ -46,12 +46,14 @@ interface UseEthereumBlocksOptions {
   onNewBlock?: (block: BlockWithStats) => void
 }
 
-interface UseEthereumBlocksReturn {
+export interface UseEthereumBlocksReturn {
   isConnected: boolean
+  isConnecting: boolean
   latestBlock: BlockWithStats | null
   blocks: BlockWithStats[]
   connect: () => void
   disconnect: () => void
+  reconnect: () => void
   error: Error | null
 }
 
@@ -62,6 +64,7 @@ export function useEthereumBlocks({
   onNewBlock,
 }: UseEthereumBlocksOptions = {}): UseEthereumBlocksReturn {
   const [isConnected, setIsConnected] = React.useState(false)
+  const [isConnecting, setIsConnecting] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
   const [latestBlock, setLatestBlock] = React.useState<BlockWithStats | null>(null)
   const [blocks, setBlocks] = React.useState<BlockWithStats[]>([])
@@ -93,11 +96,13 @@ export function useEthereumBlocks({
     if (socketRef.current?.readyState === WebSocket.OPEN) return
 
     try {
+      setIsConnecting(true)
       const socket = new WebSocket(url)
       socketRef.current = socket
 
       socket.onopen = () => {
         setIsConnected(true)
+        setIsConnecting(false)
         setError(null)
         
         // Subscribe to all blocks with transactions
@@ -120,7 +125,7 @@ export function useEthereumBlocks({
             const processedBlock = processBlock(message.data)
             
             setLatestBlock(processedBlock)
-            setBlocks(prev => [processedBlock, ...prev].slice(0, maxBlocks))
+            setBlocks((prev: BlockWithStats[]) => [processedBlock, ...prev].slice(0, maxBlocks))
             
             if (onNewBlock) {
               onNewBlock(processedBlock)
@@ -139,6 +144,7 @@ export function useEthereumBlocks({
 
       socket.onclose = () => {
         setIsConnected(false)
+        setIsConnecting(false)
         
         // Attempt to reconnect
         if (reconnectTimeoutRef.current) {
@@ -152,9 +158,11 @@ export function useEthereumBlocks({
 
       socket.onerror = (err) => {
         setError(new Error("WebSocket error"))
+        setIsConnecting(false)
         socket.close()
       }
     } catch (err) {
+      setIsConnecting(false)
       setError(err instanceof Error ? err : new Error("Failed to connect"))
     }
   }, [url, reconnectInterval, maxBlocks, onNewBlock, processBlock])
@@ -171,21 +179,32 @@ export function useEthereumBlocks({
     }
     
     setIsConnected(false)
+    setIsConnecting(false)
   }, [])
 
-  // Clean up on unmount
+  const reconnect = React.useCallback(() => {
+    disconnect()
+    setTimeout(() => {
+      connect()
+    }, 500)
+  }, [disconnect, connect])
+
+  // Connect on mount
   React.useEffect(() => {
+    connect()
     return () => {
       disconnect()
     }
-  }, [disconnect])
+  }, [connect, disconnect])
 
   return {
     isConnected,
+    isConnecting,
     latestBlock,
     blocks,
     connect,
     disconnect,
+    reconnect,
     error
   }
 } 

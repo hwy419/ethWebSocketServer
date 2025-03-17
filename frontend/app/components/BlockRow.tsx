@@ -2,7 +2,7 @@
 
 import React from "react"
 import type { BlockWithStats } from "../hooks/useEthereumBlocks"
-import { formatTimestamp, truncateHash } from "../lib/utils"
+import { formatTimestamp, truncateHash } from "./utils/formatters"
 import { Blocks, Clock, FileText } from "lucide-react"
 
 interface BlockCardProps {
@@ -20,8 +20,8 @@ export interface ColorScheme {
   primary: string
   secondary: string
   accent: string
-  background: string
   text: string
+  textDark: string
 }
 
 function BlockCard({ block, isSelected, onClick, isDark, colorScheme }: BlockCardProps): React.ReactElement {
@@ -35,9 +35,9 @@ function BlockCard({ block, isSelected, onClick, isDark, colorScheme }: BlockCar
         ${isSelected ? 'ring-2 ring-offset-2' : ''}
       `}
       style={{
-        backgroundColor: colorScheme.background,
+        backgroundColor: isDark ? 'rgba(17, 24, 39, 0.5)' : 'rgba(255, 255, 255, 0.5)',
         borderColor: isSelected ? colorScheme.primary : isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-        color: colorScheme.text,
+        color: isDark ? colorScheme.textDark : colorScheme.text,
         boxShadow: isSelected ? `0 0 15px ${colorScheme.primary}80` : 'none'
       }}
     >
@@ -51,7 +51,7 @@ function BlockCard({ block, isSelected, onClick, isDark, colorScheme }: BlockCar
       </div>
       <div className="flex items-center gap-2">
         <Clock className="size-4 opacity-60" />
-        <p className="text-sm opacity-60">{formatTimestamp(block.timestamp)}</p>
+        <p className="text-sm opacity-60">{formatTimestamp(parseInt(block.timestamp))}</p>
       </div>
       <div className="flex items-center gap-2">
         <FileText className="size-4 opacity-60" />
@@ -66,8 +66,8 @@ function BlockCard({ block, isSelected, onClick, isDark, colorScheme }: BlockCar
 
 interface BlockRowProps {
   blocks: BlockWithStats[]
-  selectedBlockNumber: string | null
-  onBlockSelect: (block: BlockWithStats) => void
+  selectedBlockNumber: number | null
+  onSelectBlock: (blockNumber: number) => void
   isDark: boolean
   colorScheme: ColorScheme
 }
@@ -75,7 +75,7 @@ interface BlockRowProps {
 export function BlockRow({ 
   blocks, 
   selectedBlockNumber, 
-  onBlockSelect, 
+  onSelectBlock, 
   isDark, 
   colorScheme 
 }: BlockRowProps): React.ReactElement {
@@ -96,8 +96,8 @@ export function BlockRow({
           <BlockCard
             key={block.hash}
             block={block}
-            isSelected={selectedBlockNumber === block.number}
-            onClick={() => onBlockSelect(block)}
+            isSelected={selectedBlockNumber === parseInt(block.number)}
+            onClick={() => onSelectBlock(parseInt(block.number))}
             isDark={isDark}
             colorScheme={colorScheme}
           />
