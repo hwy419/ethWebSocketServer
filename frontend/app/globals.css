@@ -65,6 +65,54 @@ body {
   animation: pulse 2s 1;
 }
 
+/* Fade-in animation for new blocks */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.7s ease-out forwards;
+  animation-delay: 0.3s; /* Start fading in after blocks have shifted */
+  opacity: 0; /* Start invisible */
+}
+
+/* Block container for vertical animations */
+.blocks-container {
+  position: relative;
+  will-change: transform;
+}
+
+/* Animation for shifting existing blocks down */
+.blocks-shifting .block-item:not(:first-child) {
+  transform: translateY(calc(100% + 0.5rem)); /* Push down by height of a block + margin */
+  transition-duration: 0.5s;
+}
+
+.block-item {
+  will-change: transform;
+  position: relative;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Styling for hash elements */
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.text-ellipsis {
+  text-overflow: ellipsis;
+}
+
 /* Treemap styling */
 .treemap-container {
   display: grid;

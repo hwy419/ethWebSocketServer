@@ -1,0 +1,26 @@
+/* Add these styles to your CSS */
+.blocks-container {
+  position: relative;
+  transition: transform 1s ease-out;
+}
+
+.block-item {
+  transform-origin: top center;
+}
+
+.blocks-shifting .block-item {
+  transform: translateY(calc(100% + 0.5rem));
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 1s ease-out forwards;
+}
+
+.opacity-0 {
+  opacity: 0;
+} 

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import { DashboardLayout } from "./components/ui/DashboardLayout"
-import { BlockRow } from "./components/BlockRow"
+import { BlockColumn } from "./components/BlockRow"
 import { TransactionTreemap } from "./components/TransactionTreemap"
 import { useEthereumBlocks } from "./hooks/useEthereumBlocks"
 import { ColorSchemeSelector } from "./components/ColorSchemeSelector"
@@ -79,7 +79,7 @@ export default function Home() {
       isDark={isDarkMode}
       onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
     >
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6">
         {/* Connection status banner */}
         {!isConnected && (
           <div className={`flex items-center justify-between rounded-lg p-4 ${
@@ -111,9 +111,9 @@ export default function Home() {
         )}
       
         {/* Main content */}
-        <div className="grid gap-6 md:grid-cols-6">
+        <div>
           {/* Header area */}
-          <div className="flex items-start justify-between md:col-span-6">
+          <div className="flex items-start justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold">Ethereum Block Explorer</h1>
               <p className="text-sm opacity-70">
@@ -129,24 +129,27 @@ export default function Home() {
             />
           </div>
           
-          {/* Blocks row */}
-          <div className="md:col-span-6">
-            <BlockRow 
-              blocks={blocks}
-              selectedBlockNumber={selectedBlockNumber}
-              onSelectBlock={(blockNumber) => setSelectedBlockNumber(blockNumber)}
-              colorScheme={colorSchemes.find(s => s.id === selectedColorScheme) || colorSchemes[0]}
-              isDark={isDarkMode}
-            />
-          </div>
-          
-          {/* Transactions visualization */}
-          <div className="md:col-span-6">
-            <TransactionTreemap 
-              block={selectedBlock}
-              colorScheme={colorSchemes.find(s => s.id === selectedColorScheme) || colorSchemes[0]}
-              isDark={isDarkMode}
-            />
+          {/* Two-column layout for blocks and treemap */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6" style={{ minHeight: "calc(100vh - 200px)" }}>
+            {/* Blocks column - takes 1/4 of the width on large screens */}
+            <div className="lg:col-span-1 h-[500px] lg:h-full overflow-hidden">
+              <BlockColumn 
+                blocks={blocks}
+                selectedBlockNumber={selectedBlockNumber}
+                onSelectBlock={(blockNumber) => setSelectedBlockNumber(blockNumber)}
+                colorScheme={colorSchemes.find(s => s.id === selectedColorScheme) || colorSchemes[0]}
+                isDark={isDarkMode}
+              />
+            </div>
+            
+            {/* Transactions visualization - takes 3/4 of the width on large screens */}
+            <div className="lg:col-span-3">
+              <TransactionTreemap 
+                block={selectedBlock}
+                colorScheme={colorSchemes.find(s => s.id === selectedColorScheme) || colorSchemes[0]}
+                isDark={isDarkMode}
+              />
+            </div>
           </div>
         </div>
       </div>

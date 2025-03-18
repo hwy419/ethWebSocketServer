@@ -39,7 +39,7 @@ export function DashboardLayout({
       darkMode ? "bg-gray-900 text-white" : "bg-white text-gray-900"
     )}>
       <header className={cn(
-        "sticky top-0 z-10 border-b backdrop-blur",
+        "sticky top-0 z-30 border-b backdrop-blur",
         darkMode ? "border-gray-800 bg-gray-900/95" : "border-gray-200 bg-white/95"
       )}>
         <div className="flex h-16 items-center justify-between px-4 md:px-6">
@@ -104,11 +104,12 @@ export function DashboardLayout({
         </div>
       </header>
 
-      <div className="flex">
+      <div className="flex relative">
+        {/* Navigation sidebar */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-20 w-64 transform border-r transition-transform duration-300 md:translate-x-0",
+          "fixed inset-y-0 left-0 z-20 w-64 transform border-r transition-transform duration-300 pt-16",
           darkMode ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}>
           <div className={cn(
             "flex h-16 items-center border-b px-4",
@@ -144,9 +145,10 @@ export function DashboardLayout({
           </nav>
         </aside>
 
+        {/* Main content area */}
         <main className={cn(
           "flex-1 p-4 md:p-6 transition-all duration-300",
-          isSidebarOpen ? "md:ml-64" : ""
+          "md:ml-64" // Always apply left margin on medium screens and up
         )}>
           {children}
         </main>

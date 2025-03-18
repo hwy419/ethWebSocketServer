@@ -11,7 +11,9 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "client": "node examples/client.js",
     "metrics": "ts-node examples/blockMetrics.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "frontend": "npm run dev --prefix frontend",
+    "frontend:build": "npm run build --prefix frontend"
   },
   "keywords": [],
   "author": "",
